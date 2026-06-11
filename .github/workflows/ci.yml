@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: blunder
+          POSTGRES_PASSWORD: blunder
+          POSTGRES_DB: blunder
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U blunder -d blunder"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg2://blunder:blunder@localhost:5432/blunder
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Ruff
+        run: ruff check .
+      - name: Alembic upgrade
+        run: alembic upgrade head
+      - name: Pytest
+        run: pytest -q
+
+  compose-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare env
+        run: cp .env.example .env
+      - name: Validate compose
+        run: docker compose config
+      - name: Build images
+        run: docker compose build api worker
+
+  cpp-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure & build engine (placeholder)
+        run: |
+          cmake -S engine -B engine/build
+          cmake --build engine/build

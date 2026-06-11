@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+web/dist/
+
+# C++
+engine/build/
+
+# Env / secrets
+.env
+
+# Data / artifacts
+*.faiss
+pgdata/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Claude Code project data
+.claude/
