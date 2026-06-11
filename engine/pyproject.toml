@@ -1,0 +1,17 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.12"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "blunder-engine"
+version = "0.1.0"
+description = "Blunder Psychologist — native chess analysis engine (Stockfish/UCI, pybind11)"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+[tool.scikit-build]
+cmake.version = ">=3.20"
+# Wheel builds only need the Python module; skip the Catch2 suite here (it is built and run
+# separately in CI against a pinned Stockfish).
+cmake.args = ["-DBLUNDER_BUILD_TESTS=OFF", "-DBLUNDER_BUILD_PYTHON=ON"]
+build-dir = "build/{wheel_tag}"

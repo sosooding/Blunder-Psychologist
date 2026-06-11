@@ -51,11 +51,37 @@ jobs:
       - name: Build images
         run: docker compose build api worker
 
-  cpp-build:
+  engine-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Configure & build engine (placeholder)
+      - name: Install pinned Stockfish
         run: |
-          cmake -S engine -B engine/build
-          cmake --build engine/build
+          curl -sSL -o /tmp/sf.tar \
+            https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64.tar
+          tar -xf /tmp/sf.tar -C /tmp
+          sudo install -m 0755 /tmp/stockfish/stockfish-ubuntu-x86-64 /usr/local/bin/stockfish
+      - name: Configure & build engine
+        run: |
+          cmake -S engine -B engine/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build engine/build -j
+      - name: Catch2 suite (sign conventions + determinism)
+        run: ctest --test-dir engine/build --output-on-failure
+
+  engine-wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned Stockfish
+        run: |
+          curl -sSL -o /tmp/sf.tar \
+            https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64.tar
+          tar -xf /tmp/sf.tar -C /tmp
+          sudo install -m 0755 /tmp/stockfish/stockfish-ubuntu-x86-64 /usr/local/bin/stockfish
+      - name: Build & install the blunder_engine wheel
+        run: pip install ./engine
+      - name: Wheel smoke test
+        run: python engine/tests/smoke_wheel.py

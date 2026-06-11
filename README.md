@@ -52,8 +52,15 @@ analysis (by Lichess URL or PGN paste) jumps the backfill queue at priority 0.
 queue (`SELECT … FOR UPDATE SKIP LOCKED`), all six schema tables, Alembic migrations, FastAPI
 health endpoint, worker poll loop, and a `hello` job end-to-end.
 
-Later phases add the engine core, ingestion funnel, annotation/RAG, the agent graph, the MCP
-server, and the Engine Room UI. See [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) for the phased
+**Phase 1 — Engine core complete.** Deterministic, batch Stockfish analysis callable from
+Python: a `Threads 1`, node-limited UCI driver with `ucinewgame` per position, mate-aware
+eval-delta semantics fixed by hand-computed tests, a pool that analyzes whole PGNs reproducibly,
+and the `blunder_engine` pybind11 wheel (GIL released). The Catch2 suite — sign conventions plus
+byte-identical determinism — is green in CI against a pinned Stockfish (`sf_18`). See
+[`engine/`](engine/).
+
+Later phases add features/archetypes, the ingestion funnel, annotation/RAG, the agent graph, the
+MCP server, and the Engine Room UI. See [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) for the phased
 build and [`DESIGN.md`](DESIGN.md) for full architecture details.
 
 ---
