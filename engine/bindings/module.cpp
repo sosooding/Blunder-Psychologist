@@ -23,6 +23,13 @@ PYBIND11_MODULE(blunder_engine, m) {
         .def_readonly("best_eval_cp", &MoveAnalysis::best_eval_cp)
         .def_readonly("delta_cp", &MoveAnalysis::delta_cp)
         .def_readonly("best_pv", &MoveAnalysis::best_pv)
+        .def_readonly("sharpness", &MoveAnalysis::sharpness)
+        .def_property_readonly(
+            "severity", [](const MoveAnalysis& a) { return severityName(a.severity); })
+        .def_property_readonly(
+            "archetype", [](const MoveAnalysis& a) { return archetypeName(a.features.archetype); })
+        .def_property_readonly("features",
+                               [](const MoveAnalysis& a) { return toJson(a.features); })
         .def("__repr__", [](const MoveAnalysis& a) {
             return "<MoveAnalysis ply=" + std::to_string(a.ply) + " move=" + a.move_uci +
                    " delta_cp=" + std::to_string(a.delta_cp) + ">";

@@ -59,9 +59,19 @@ and the `blunder_engine` pybind11 wheel (GIL released). The Catch2 suite — sig
 byte-identical determinism — is green in CI against a pinned Stockfish (`sf_18`). See
 [`engine/`](engine/).
 
-Later phases add features/archetypes, the ingestion funnel, annotation/RAG, the agent graph, the
-MCP server, and the Engine Room UI. See [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) for the phased
-build and [`DESIGN.md`](DESIGN.md) for full architecture details.
+**Phase 2 — Features & archetypes complete.** Every analyzed position now carries a positional
+feature vector and a pawn-structure archetype, built test-first. Hand-coded bitboard predicates
+(isolated / doubled / backward / passed pawns, open & half-open files, king-shield integrity)
+feed an ordered-predicate classifier over the 12 canonical structures with an honest `unknown`
+class, validated by a golden-FEN suite. A MultiPV-3 sharpness metric and a sharpness-scaled
+severity classifier (inaccuracy / mistake / blunder, suppressed once the game is already decided)
+finish each move. The feature layer is Stockfish-free and lives in its own library
+(`blunder_features`); its golden-FEN and predicate suites run in CI without an engine binary. The
+pybind11 output now exposes `features`, `archetype`, `sharpness`, and `severity` per move.
+
+Later phases add the ingestion funnel, annotation/RAG, the agent graph, the MCP server, and the
+Engine Room UI. See [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) for the phased build and
+[`DESIGN.md`](DESIGN.md) for full architecture details.
 
 ---
 

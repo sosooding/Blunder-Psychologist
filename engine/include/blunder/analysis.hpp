@@ -3,7 +3,9 @@
 #include <string>
 #include <vector>
 
+#include "blunder/features.hpp"
 #include "blunder/score.hpp"
+#include "blunder/severity.hpp"
 
 namespace blunder {
 
@@ -36,6 +38,11 @@ struct MoveAnalysis {
     int delta_cp = 0;      // centipawns lost by the mover (>= 0)
 
     std::vector<std::string> best_pv;  // engine's best line from the position before the move
+
+    // Phase 2 positional annotation, filled by annotate() from the pre-move position.
+    Features features;                   // features from the mover's perspective (incl. archetype)
+    int sharpness = 0;                   // MultiPV-3 eval spread (cp): how forcing the position was
+    Severity severity = Severity::None;  // inaccuracy / mistake / blunder, scaled by sharpness
 };
 
 struct GameAnalysis {
@@ -46,5 +53,10 @@ struct GameAnalysis {
 // across two independent runs, so the format must be fully ordered and free of any incidental
 // state (timings, node counts, pointer values).
 std::string serialize(const std::vector<GameAnalysis>& games);
+
+// Fill a move's positional annotation (features, sharpness, severity) from the position it was
+// played in (ma.fen) and the engine's evaluation of that position (`before`). Pure board geometry
+// plus the pinned thresholds — no engine, no I/O.
+void annotate(MoveAnalysis& ma, const PositionEval& before);
 
 }  // namespace blunder

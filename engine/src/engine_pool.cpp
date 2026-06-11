@@ -231,6 +231,7 @@ std::vector<GameAnalysis> analyzeGames(const std::vector<std::string>& pgns,
             ma.eval_cp = whitePov(negate(after_best), white);
             ma.delta_cp = deltaCp(best, after_best);
             if (!before.lines.empty()) ma.best_pv = before.lines.front().moves;
+            annotate(ma, before);  // features, archetype, sharpness, severity
             ga.moves.push_back(std::move(ma));
         }
         out.push_back(std::move(ga));
