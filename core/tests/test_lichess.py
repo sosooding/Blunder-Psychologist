@@ -114,3 +114,19 @@ def test_opening_explorer_parses_and_hits_explorer_host():
     assert "explorer.lichess.ovh" in str(captured["url"])
     assert captured["url"].params["fen"].startswith("rnbqkbnr")
     client.close()
+
+
+def test_explorer_carries_token_and_user_agent():
+    # The opening explorer rejects anonymous requests (401), so the token must reach it too.
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["headers"] = request.headers
+        return httpx.Response(200, json={"white": 1, "draws": 0, "black": 0, "moves": []})
+
+    client = LichessClient(token="tok", transport=httpx.MockTransport(handler))
+    client.opening_explorer("8/8/8/8/8/8/4k3/4K3 w - - 0 1")
+
+    assert captured["headers"]["authorization"] == "Bearer tok"
+    assert captured["headers"]["user-agent"] == "blunder-psychologist"
+    client.close()

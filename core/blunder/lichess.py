@@ -43,12 +43,16 @@ class LichessClient:
         sleep: Callable[[float], None] = time.sleep,
         timeout: float = 30.0,
     ) -> None:
-        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        # Lichess asks API clients to identify themselves, and the opening explorer now rejects
+        # anonymous requests (401) — so the token goes to *both* clients, not just game export.
+        headers = {"User-Agent": "blunder-psychologist"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
         self._games = httpx.Client(
             base_url=base_url, headers=headers, transport=transport, timeout=timeout
         )
         self._explorer = httpx.Client(
-            base_url=explorer_base_url, transport=transport, timeout=timeout
+            base_url=explorer_base_url, headers=headers, transport=transport, timeout=timeout
         )
         self._max_retries = max_retries
         self._sleep = sleep
