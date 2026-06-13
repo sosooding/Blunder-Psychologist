@@ -5,6 +5,7 @@ import signal
 import time
 from types import FrameType
 
+from . import handlers  # noqa: F401  (import registers the Phase 3 job handlers)
 from .config import settings
 from .db import SessionLocal
 from .jobs import REGISTRY

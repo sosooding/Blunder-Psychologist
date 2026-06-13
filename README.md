@@ -69,9 +69,24 @@ finish each move. The feature layer is Stockfish-free and lives in its own libra
 (`blunder_features`); its golden-FEN and predicate suites run in CI without an engine binary. The
 pybind11 output now exposes `features`, `archetype`, `sharpness`, and `severity` per move.
 
-Later phases add the ingestion funnel, annotation/RAG, the agent graph, the MCP server, and the
-Engine Room UI. See [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) for the phased build and
-[`DESIGN.md`](DESIGN.md) for full architecture details.
+**Phase 3 — Ingestion & the two-pass funnel complete.** Type a Lichess username and the system
+backfills it unattended: an NDJSON-streaming client (429 backoff) pulls rated rapid/classical
+games, a stratified sampler picks ~300 recent + ~100 older, and each game is parsed with
+python-chess (per-move clocks + embedded `[%eval]`). Book exit is detected per game via the
+opening explorer (cached by FEN in `opening_cache`, flat move-10 fallback). The **cheap pass**
+thresholds Lichess eval-deltas on the profiled user's post-book moves for free, falling back to a
+100k-node engine scan only where evals are absent; the **deep pass** turns each candidate into a
+minimal `[SetUp]`/`[FEN]` one-move PGN so the C++ engine re-evaluates *only* candidate positions
+at 2M nodes — that is where the funnel saves its compute. Priority lanes (on-demand single game =
+0, backfill chunks of 25 = 10), incremental sync via `last_synced_at`, and FastAPI endpoints
+(`POST /users/{u}/backfill`, `POST /games/analyze`, `GET /users/{u}/status`) round it out. The
+funnel ratio is logged per chunk. Built test-first: a committed NDJSON fixture drives the client,
+sampler, parser, book-exit, and cheap-pass unit tests, and an end-to-end test runs the whole
+backfill→scan→deep chain through the real queue and Postgres with a fake transport and analyzer.
+
+Later phases add annotation/RAG, the agent graph, the MCP server, and the Engine Room UI. See
+[`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) for the phased build and [`DESIGN.md`](DESIGN.md) for full
+architecture details.
 
 ---
 
@@ -155,8 +170,10 @@ Book moves don't count: book exit is detected per game via the Lichess opening e
 by FEN, flat move-10 fallback) and stored as `games.book_exit_ply`. Blunder-opportunity counting
 starts there. Bullet games excluded entirely.
 
-Target funnel ratio: ~10x fewer deep-analyzed positions than total positions. The measured ratio
-is logged at runtime and will be reported here once Phase 3 ships.
+Target funnel ratio: ~10x fewer deep-analyzed positions than total positions. As of Phase 3 the
+funnel is implemented end-to-end and logs the measured ratio (candidate plies ÷ total plies) per
+scanned chunk; the headline number from a real backfill is filled in once the demo account is
+seeded (Phase 8).
 
 ### Postgres job queue — no Redis, no Celery
 

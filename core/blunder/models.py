@@ -119,6 +119,19 @@ class Profile(Base):
     user: Mapped["User"] = relationship(back_populates="profiles")
 
 
+class OpeningCache(Base):
+    """Opening-explorer responses keyed by FEN. Positions repeat heavily across a user's games,
+    so this turns book-exit detection from O(plies) explorer calls into O(distinct positions)."""
+
+    __tablename__ = "opening_cache"
+
+    fen: Mapped[str] = mapped_column(Text, primary_key=True)
+    total_games: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class Job(Base):
     __tablename__ = "jobs"
     __table_args__ = (
