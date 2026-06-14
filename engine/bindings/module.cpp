@@ -6,6 +6,8 @@
 
 #include "blunder/analysis.hpp"
 #include "blunder/engine_pool.hpp"
+#include "blunder/features.hpp"
+#include "chess.hpp"
 
 namespace py = pybind11;
 using namespace blunder;
@@ -61,4 +63,17 @@ PYBIND11_MODULE(blunder_engine, m) {
 
     m.def("serialize", &serialize, py::arg("games"),
           "Canonical, deterministic text serialization of a list of GameAnalysis.");
+
+    m.def(
+        "extract_features",
+        [](const std::string& fen, bool white_perspective) {
+            const chess::Board board(fen);
+            const chess::Color persp =
+                white_perspective ? chess::Color::WHITE : chess::Color::BLACK;
+            return toJson(extractFeatures(board, persp));
+        },
+        py::arg("fen"), py::arg("white_perspective"),
+        "Extract the positional feature vector for `fen` from the given side's perspective "
+        "(true = White), returned as the same compact JSON used in move_analyses.features. "
+        "Stockfish-free: pure board geometry over the vendored chess library.");
 }

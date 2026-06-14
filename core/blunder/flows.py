@@ -53,6 +53,11 @@ def run_backfill(
     """Fetch + sample a user's games, persist them, fan out scan_chunk jobs over the new ones."""
     from .sampler import sample  # local import keeps the module's import graph shallow
 
+    # TODO(stratified-sampler): the fetch window and the sample cap are both `max_games`, so
+    # `sample(..., cap=max_games)` returns the fetched list unchanged and `stratified` degrades to
+    # `recent` — the "older" stratum is never drawn because older games are never fetched. To make
+    # stratification real, fetch a wider window than the cap (a larger Lichess `max`, or the user's
+    # deeper history) and downsample to `max_games` here. Deferred.
     fetched = list(client.stream_user_games(username, max_games=max_games, since_ms=since_ms))
     sampled = sample(fetched, strategy, cap=max_games)
 
@@ -127,7 +132,8 @@ def run_scan_chunk(
 ) -> dict[str, int]:
     """Cheap pass over a chunk of games; enqueue deep_analyze for those with candidates.
 
-    Logs the funnel ratio (candidate plies / total plies) — the measured number for the README.
+    Logs the funnel ratio (total plies / candidate plies, e.g. 12.0x) — the measured number for
+    the README.
     """
     total_plies = 0
     total_candidates = 0

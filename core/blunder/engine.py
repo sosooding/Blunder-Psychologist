@@ -123,6 +123,25 @@ class EngineAnalyzer:
         return out
 
 
+class FeatureExtractor(Protocol):
+    def extract(self, fen: str, *, white_perspective: bool) -> dict:
+        """Positional feature vector for ``fen`` from the given side's perspective."""
+        ...
+
+
+class EngineFeatureExtractor:
+    """Real feature extractor backed by ``blunder_engine.extract_features`` — Stockfish-free, so
+    it is cheap to call per candidate (no UCI process, just board geometry over the vendored
+    chess library)."""
+
+    def extract(self, fen: str, *, white_perspective: bool) -> dict:
+        try:
+            import blunder_engine  # noqa: PLC0415  (lazy: keep core importable without the wheel)
+        except ImportError as exc:  # pragma: no cover - exercised only without the wheel
+            raise EngineUnavailable("blunder_engine wheel is not installed") from exc
+        return json.loads(blunder_engine.extract_features(fen, white_perspective))
+
+
 def classify_phase(fen: str) -> str:
     """Coarse game-phase bucket for retrieval filtering: opening / middlegame / endgame."""
     board = chess.Board(fen)

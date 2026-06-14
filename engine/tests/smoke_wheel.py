@@ -37,7 +37,18 @@ def main() -> None:
     b = be.serialize(be.analyze_games([PGN], nodes=100_000, multipv=3, engines=2))
     assert a == b, "analysis was not deterministic across pool sizes"
 
-    print(f"smoke OK: {worst!r}")
+    # Stockfish-free feature extraction (used by the positional motif detectors). White has an
+    # isolated, passed-looking d4 pawn and an intact king shield.
+    import json
+
+    feats = json.loads(
+        be.extract_features("r2q1rk1/pp3ppp/2n1pn2/8/3P4/2N2N2/PP3PPP/R1BQ1RK1 w - - 0 1", True)
+    )
+    assert feats["isolated_pawns"] == 1, f"expected 1 isolated pawn, got {feats}"
+    assert feats["king_shield"] == 3, f"expected intact king shield, got {feats}"
+    assert feats["archetype"] == "iqp", f"expected iqp archetype, got {feats['archetype']}"
+
+    print(f"smoke OK: {worst!r}; features OK: {feats}")
 
 
 if __name__ == "__main__":

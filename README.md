@@ -84,7 +84,21 @@ funnel ratio is logged per chunk. Built test-first: a committed NDJSON fixture d
 sampler, parser, book-exit, and cheap-pass unit tests, and an end-to-end test runs the whole
 backfill→scan→deep chain through the real queue and Postgres with a fake transport and analyzer.
 
-Later phases add annotation/RAG, the agent graph, the MCP server, and the Engine Room UI. See
+**Phase 4 — Annotation & RAG complete.** Every blunder now gets a grounded, motif-tagged
+annotation and is retrievable by similarity. Motifs are detected in code first — tactical
+(`hanging_piece`, `fork`, `pin`, `back_rank`) via a static-exchange evaluator over the
+post-blunder board, positional (`structure_damage`, `king_shield_weakening`, `mobility_collapse`)
+via played-vs-best feature diffs through a new Stockfish-free `extract_features` engine binding.
+The LLM (Gemini Flash or local Ollama, behind one env var) writes only the *why* and the
+counterfactual as strict JSON over a closed tag vocabulary — fence-stripping, off-vocabulary
+rejection, and a retry path are all deterministically tested. Annotations are batched, immutable,
+and embedded with local bge-small (fastembed); per-user FAISS `IndexFlatIP` retrieval does a SQL
+metadata pre-filter (phase × archetype × severity) then top-k semantic search. An `annotate` job
+runs after each deep analysis; `find_similar_blunders(fen)` and `GET /users/{u}/similar` expose
+retrieval. Built test-first: detector benchmarks, the JSON-boundary suite, and an end-to-end
+annotate-and-retrieve test through real Postgres with fakes for the engine, LLM, and embedder.
+
+Later phases add the agent graph, the MCP server, and the Engine Room UI. See
 [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) for the phased build and [`DESIGN.md`](DESIGN.md) for full
 architecture details.
 
@@ -171,9 +185,9 @@ by FEN, flat move-10 fallback) and stored as `games.book_exit_ply`. Blunder-oppo
 starts there. Bullet games excluded entirely.
 
 Target funnel ratio: ~10x fewer deep-analyzed positions than total positions. As of Phase 3 the
-funnel is implemented end-to-end and logs the measured ratio (candidate plies ÷ total plies) per
-scanned chunk; the headline number from a real backfill is filled in once the demo account is
-seeded (Phase 8).
+funnel is implemented end-to-end and logs the measured ratio (total plies ÷ candidate plies, e.g.
+`12.0x`) per scanned chunk; the headline number from a real backfill is filled in once the demo
+account is seeded (Phase 8).
 
 ### Postgres job queue — no Redis, no Celery
 

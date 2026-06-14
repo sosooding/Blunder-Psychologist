@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     Text,
     UniqueConstraint,
     func,
@@ -75,6 +76,7 @@ class MoveAnalysis(Base):
     phase: Mapped[str | None] = mapped_column(Text)
     pawn_archetype: Mapped[str | None] = mapped_column(Text)
     features: Mapped[dict | None] = mapped_column(JSONB)
+    best_pv: Mapped[list | None] = mapped_column(JSONB)  # engine best line, UCI
 
     game: Mapped["Game"] = relationship(back_populates="move_analyses")
     blunder: Mapped["Blunder | None"] = relationship(
@@ -130,6 +132,19 @@ class OpeningCache(Base):
     fetched_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+class Embedding(Base):
+    """L2-normalized bge-small vector for a blunder's annotation. The source of truth for FAISS
+    rebuilds; the per-user ``{user}.faiss`` file is just a cache (see ``retrieval.py``)."""
+
+    __tablename__ = "embeddings"
+
+    blunder_id: Mapped[int] = mapped_column(
+        ForeignKey("blunders.id", ondelete="CASCADE"), primary_key=True
+    )
+    dim: Mapped[int] = mapped_column(Integer, nullable=False)
+    vector: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)  # float32 bytes
 
 
 class Job(Base):

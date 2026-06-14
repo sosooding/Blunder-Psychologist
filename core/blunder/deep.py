@@ -61,6 +61,7 @@ def move_analysis_params(game_id: int, pg: ParsedGame, ply: int, r: DeepResult) 
         "phase": classify_phase(m.fen_before),
         "arch": r.archetype,
         "features": json.dumps(r.features),
+        "best_pv": json.dumps(r.best_pv),
     }
 
 
@@ -68,16 +69,16 @@ _UPSERT_MOVE = text(
     """
     INSERT INTO move_analyses
         (game_id, ply, fen, move, eval_cp, best_eval_cp, delta_cp, sharpness,
-         clock_seconds, phase, pawn_archetype, features)
+         clock_seconds, phase, pawn_archetype, features, best_pv)
     VALUES
         (:gid, :ply, :fen, :move, :eval_cp, :best_eval_cp, :delta_cp, :sharpness,
-         :clock, :phase, :arch, cast(:features as jsonb))
+         :clock, :phase, :arch, cast(:features as jsonb), cast(:best_pv as jsonb))
     ON CONFLICT (game_id, ply) DO UPDATE SET
         fen = EXCLUDED.fen, move = EXCLUDED.move, eval_cp = EXCLUDED.eval_cp,
         best_eval_cp = EXCLUDED.best_eval_cp, delta_cp = EXCLUDED.delta_cp,
         sharpness = EXCLUDED.sharpness, clock_seconds = EXCLUDED.clock_seconds,
         phase = EXCLUDED.phase, pawn_archetype = EXCLUDED.pawn_archetype,
-        features = EXCLUDED.features
+        features = EXCLUDED.features, best_pv = EXCLUDED.best_pv
     RETURNING id
     """
 )

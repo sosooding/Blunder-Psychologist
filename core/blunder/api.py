@@ -1,7 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import text
 
+from . import services
+from .annotate_flow import find_similar_blunders
+from .config import settings
 from .db import SessionLocal
 from .flows import PRIORITY_BACKFILL, PRIORITY_ONDEMAND
 from .queue import enqueue
@@ -73,6 +76,39 @@ def analyze_game(req: AnalyzeGameRequest) -> dict[str, object]:
             priority=PRIORITY_ONDEMAND,
         )
     return {"job_id": job_id, "status": "queued"}
+
+
+@app.get("/users/{username}/similar")
+def similar_blunders(
+    username: str,
+    fen: str = Query(..., description="the query position"),
+    k: int = 5,
+    phase: str | None = None,
+    archetype: str | None = None,
+    severity: str | None = None,
+) -> dict[str, object]:
+    """Retrieve a user's past blunders most similar to ``fen`` (hybrid metadata + FAISS search).
+
+    Needs the engine extractor (wheel) and the embedding model in this process — present in the
+    worker image; the api image gains them when the retrieval surface ships.
+    """
+    try:
+        with SessionLocal() as session:
+            results = find_similar_blunders(
+                session,
+                username,
+                fen,
+                extractor=services.extractor(),
+                embedder=services.embedder(),
+                faiss_dir=settings.faiss_dir,
+                k=k,
+                phase=phase,
+                archetype=archetype,
+                severity=severity,
+            )
+        return {"username": username, "results": results}
+    except RuntimeError as exc:  # engine wheel / embedder unavailable in this image
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @app.get("/users/{username}/status")
